@@ -1,0 +1,21 @@
+# Ignore env files
+.env
+.env.*
+
+# Binaries
+*.exe
+*.out
+*.test
+
+# Build output
+/bin/
+/build/
+/dist/
+
+# Go modules cache
+/vendor/
+
+# IDE/editor files
+.vscode/
+.idea/
+*.log
