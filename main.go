@@ -90,7 +90,7 @@ func main() {
 	if err != nil {
 		log.Fatal.(err)
 	}
-
+	// dari package storage do postgres.go
 	db, err := storage.NewConnetion(config)
 	if err != nil {
 		log.Fatal("could not load the database")
