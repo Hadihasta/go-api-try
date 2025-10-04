@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,7 +10,7 @@ import (
 	"github.com/joho/godotenv"
 
 	// ambil dari folder models & storage ini kalau tidak import otomatis bisa di tambahkan manual
-	// run go mod tidy 
+	// run go mod tidy
 	"github.com/go-api-try/models"
 	"github.com/go-api-try/storage"
 
@@ -35,7 +36,7 @@ func (r *Repository) CreateBook(context *fiber.Ctx) error {
 	book := Book{}
 
 	// convert json yang di terima dengan fitur si fiber.ctx
-	err := context.BodyParser{&book}
+	err := context.BodyParser(&book)
 
 	if err != nil {
 		context.Status(http.StatusUnprocessableEntity).JSON(
@@ -45,103 +46,129 @@ func (r *Repository) CreateBook(context *fiber.Ctx) error {
 
 	// r ada acces ke db sesuai yang di declare di bawah
 	// buat data buku ke database dan jika tidak kirim message error
-	err := r.DB.Create(&book).Error
-	if err != nil{
+	err = r.DB.Create(&book).Error
+	if err != nil {
 		context.Status(http.StatusBadRequest).JSON(
-			&fiber.Map{"message":"cannot create book"}
-		)
+			&fiber.Map{"message": "cannot create book"})
 		return err
 	}
-	context.Status(http.StatusOK).JSON(&fiber.Map{
-		"message":"book has been created"
-	})
+	context.Status(http.StatusOK).JSON(
+		&fiber.Map{"message": "book has been created"})
 	// return nya kenapa nil karena di atas kita declare expect error
 	return nil
 }
 
-func (r *Repository) GetBooks(context *fiber.Ctx) error{
+func (r *Repository) GetBooks(context *fiber.Ctx) error {
 	// ini [] data type slice
 	bookModels := &[]models.Books{}
 
 	err := r.DB.Find(bookModels).Error
 
-	if err != nil{
+	if err != nil {
 		// jika error return errornya
 		context.Status(http.StatusBadRequest).JSON(
-			&fiber.Map{"message":"could not get books"}
-		)
+			&fiber.Map{"message": "could not get books"})
 		return err
 	}
-// jika tidak ada eror maka berhasil
-context.Status(http.StatusOK).JSON(&fiber.Map{
-	"message":"books fetched succesfully",
-	"data": bookModels,
-})
-// balikin nil nya karna kalau tidak sama dengan nill masuk di atas
-return nil
+	// jika tidak ada eror maka berhasil
+	context.Status(http.StatusOK).JSON(&fiber.Map{
+		"message": "books fetched succesfully",
+		"data":    bookModels})
+	// balikin nil nya karna kalau tidak sama dengan nill masuk di atas
+	return nil
 
 }
 
 // fiber framework sangat membantu untuk mendapatkan HTTP status tapi jika ingin menjadi golang developer
 // yang baik maka ada baiknya untuk mengetahui setiap bentuk dasar tanpa menggunakan framework apapun
 // dan membuatnya dengan apa yang golang sediakan
-func (r *Repository) DeleteBook(context *fiber.Ctx) error{
+func (r *Repository) DeleteBook(context *fiber.Ctx) error {
 	bookModel := models.Books{}
-	id := context,Params("id")
-	if id == ""{
-		context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
-			"message":"id cannot be empty"
-		})
+	id := context.Params("id")
+	if id == "" {
+		context.Status(http.StatusInternalServerError).JSON(
+			&fiber.Map{"message": "id cannot be empty"})
 		return nil
 	}
 
 	err := r.DB.Delete(bookModel, id)
 
-	if err != nil{
-		context.Status(http.StatusBadRequest).JSON(&fiber.Map{
-			"message":"could not delete books",
-		})
+	if err != nil {
+		context.Status(http.StatusBadRequest).JSON(
+			&fiber.Map{"message": "could not delete books"})
 		return err.Error
 	}
 
-	context.Status(http.StatusOK).JSON(&fiber.Map({
-		"message": "books delete succesfully"
-	}))
+	context.Status(http.StatusOK).JSON(
+		&fiber.Map{"message": "books delete succesfully"})
 	// nil maksudnya adalah error
 	return nil
 }
+
 // *GREAT NOTE: setiap membuat program jangan mencoba untuk berasumsi, cukup buka dokumentasi
 // dan ambil semua yang kamu butuhkan
 
+func (r *Repository) GetBookByID(context *fiber.Ctx) error {
+	// dengan fiber sangat mudah mendapatkan params
+	id := context.Params("id")
+	// &models.Books itu diambil dari modul Models yang ada di folder Models/books.go
+	bookModel := &models.Books{}
+	if id == "" {
+		context.Status(http.StatusInternalServerError).JSON(
+			&fiber.Map{"message": "id cannot be empty"})
+		return nil
+	}
+
+	fmt.Println("the id is", id)
+
+	// ketika id di db = id yanh di cari maka tampilkan yang ditemukan
+	err := r.DB.Where("id = ?", id).First(bookModel).Error
+
+	if err != nil {
+		context.Status(http.StatusBadRequest).JSON(
+			&fiber.Map{"message": "could not get the book"})
+		return err
+	}
+
+	context.Status(http.StatusOK).JSON(&fiber.Map{
+		"message": " book id fetched succesfully",
+		"data":    bookModel,
+	})
+	return nil
+}
 
 func (r *Repository) SetupRoutes(app *fiber.App) {
 	api := app.Group("/api")
 	api.Post("/create_books", r.CreateBook)
 	api.Delete("delete_book/:id", r.DeleteBook)
-	api.Get("/get_books/:id", r.GetBookById)
+	api.Get("/get_books/:id", r.GetBookByID)
 	api.Get("/books", r.GetBooks)
 }
 
 func main() {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal.(err)
+		log.Fatal(err)
 	}
 
-
-
-	config :=  &storage.Config{
-	 Host: os.Getenv("DB_HOST"),
-	 Port: os.Getenv("DB_PORT"),
-	 Password: os.Getenv("DB_PASS"),
-	 User: os.Getenv("DB_USER"),
-	 DBName: os.Getenv("DB_SSLMODE"),
-	 SSLMode: os.Getenv("DB_NAME"),
+	config := &storage.Config{
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		Password: os.Getenv("DB_PASS"),
+		User:     os.Getenv("DB_USER"),
+		DBName:   os.Getenv("DB_NAME"),
+		SSLMode:  os.Getenv("DB_SSLMODE"),
 	}
 	// dari package storage do postgres.go
 	db, err := storage.NewConnetion(config)
 	if err != nil {
 		log.Fatal("could not load the database")
+	}
+
+	//  karena di models/books.go ada migrate maka jangan lupa untuk di logs di sini
+	err = models.MigrateBooks(db)
+	if err != nil {
+		log.Fatal("could not migrate db")
 	}
 
 	r := Repository{

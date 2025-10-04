@@ -1,32 +1,37 @@
-// declate package storage agar dapat di pangil di main.go
 package storage
 
 import (
 	"fmt"
+	"log"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
+// Config stores PostgreSQL connection details
 type Config struct {
 	Host     string
 	Port     string
-	Password string
 	User     string
+	Password string
 	DBName   string
 	SSLMode  string
 }
 
-func NewConnection(config *Config) (*gorm.DB, error) {
-dsn:
-	fmt.Sprintf(
-		"host=%s port=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode,
+// NewConnection creates a new PostgreSQL connection using GORM
+func NewConnetion(cfg *Config) (*gorm.DB, error) {
+	// Correct: define dsn as a string variable
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode,
 	)
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return db, err
+		log.Printf("error connecting to database: %v", err)
+		return nil, err
 	}
 
+	log.Println("Database connected successfully")
 	return db, nil
 }
