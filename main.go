@@ -25,7 +25,7 @@ type Repository struct {
 }
 
 // declare struct method sendiri sebagai function for createbook  dengan r sebagai repository
-func (r *Repository) createBook(context *fiber.Ctx) error {
+func (r *Repository) CreateBook(context *fiber.Ctx) error {
 	book := Book{}
 
 	// convert json yang di terima dengan fitur si fiber.ctx
@@ -51,6 +51,30 @@ func (r *Repository) createBook(context *fiber.Ctx) error {
 	})
 	// return nya kenapa nil karena di atas kita declare expect error
 	return nil
+}
+
+func (r *Repository) GetBooks(context *fiber.Ctx) error{
+	// ini [] data type slice
+	bookModels := &[]models.Books{}
+
+	err := r.DB.Find(bookModels).Error
+
+	if err != nil{
+		// jika error return errornya
+		context.Status(http.StatusBadRequest).JSON(
+			&fiber.Map{"message":"could not get books"}
+		)
+		return err
+	}
+// jika tidak ada eror maka berhasil
+context.Status(http.StatusOK).JSON(&fiber.Map{
+	"message":"books fetched succesfully",
+	"data": bookModels,
+})
+// balikin nil nya karna kalau tidak sama dengan nill masuk di atas
+return nil
+
+
 }
 
 func (r *Repository) SetupRoutes(app *fiber.App) {
