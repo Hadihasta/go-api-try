@@ -3,9 +3,15 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
+
+	// ambil dari folder models & storage ini kalau tidak import otomatis bisa di tambahkan manual
+	// run go mod tidy 
+	"github.com/go-api-try/models"
+	"github.com/go-api-try/storage"
 
 	"gorm.io/gorm"
 )
@@ -74,8 +80,39 @@ context.Status(http.StatusOK).JSON(&fiber.Map{
 // balikin nil nya karna kalau tidak sama dengan nill masuk di atas
 return nil
 
-
 }
+
+// fiber framework sangat membantu untuk mendapatkan HTTP status tapi jika ingin menjadi golang developer
+// yang baik maka ada baiknya untuk mengetahui setiap bentuk dasar tanpa menggunakan framework apapun
+// dan membuatnya dengan apa yang golang sediakan
+func (r *Repository) DeleteBook(context *fiber.Ctx) error{
+	bookModel := models.Books{}
+	id := context,Params("id")
+	if id == ""{
+		context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"message":"id cannot be empty"
+		})
+		return nil
+	}
+
+	err := r.DB.Delete(bookModel, id)
+
+	if err != nil{
+		context.Status(http.StatusBadRequest).JSON(&fiber.Map{
+			"message":"could not delete books",
+		})
+		return err.Error
+	}
+
+	context.Status(http.StatusOK).JSON(&fiber.Map({
+		"message": "books delete succesfully"
+	}))
+	// nil maksudnya adalah error
+	return nil
+}
+// *GREAT NOTE: setiap membuat program jangan mencoba untuk berasumsi, cukup buka dokumentasi
+// dan ambil semua yang kamu butuhkan
+
 
 func (r *Repository) SetupRoutes(app *fiber.App) {
 	api := app.Group("/api")
@@ -89,6 +126,17 @@ func main() {
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal.(err)
+	}
+
+
+
+	config :=  &storage.Config{
+	 Host: os.Getenv("DB_HOST"),
+	 Port: os.Getenv("DB_PORT"),
+	 Password: os.Getenv("DB_PASS"),
+	 User: os.Getenv("DB_USER"),
+	 DBName: os.Getenv("DB_SSLMODE"),
+	 SSLMode: os.Getenv("DB_NAME"),
 	}
 	// dari package storage do postgres.go
 	db, err := storage.NewConnetion(config)
