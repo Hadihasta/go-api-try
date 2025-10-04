@@ -83,28 +83,33 @@ func (r *Repository) GetBooks(context *fiber.Ctx) error {
 // yang baik maka ada baiknya untuk mengetahui setiap bentuk dasar tanpa menggunakan framework apapun
 // dan membuatnya dengan apa yang golang sediakan
 func (r *Repository) DeleteBook(context *fiber.Ctx) error {
-	bookModel := models.Books{}
+	bookModel := &models.Books{}
 	id := context.Params("id")
+
 	if id == "" {
 		context.Status(http.StatusInternalServerError).JSON(
 			&fiber.Map{"message": "id cannot be empty"})
 		return nil
 	}
 
-	err := r.DB.Delete(bookModel, id)
+	result := r.DB.Delete(bookModel, id)
 
-	if err != nil {
+	if result.Error != nil {
 		context.Status(http.StatusBadRequest).JSON(
-			&fiber.Map{"message": "could not delete books"})
-		return err.Error
+			&fiber.Map{"message": "could not delete book"})
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		context.Status(http.StatusNotFound).JSON(
+			&fiber.Map{"message": "book not found"})
+		return nil
 	}
 
 	context.Status(http.StatusOK).JSON(
-		&fiber.Map{"message": "books delete succesfully"})
-	// nil maksudnya adalah error
+		&fiber.Map{"message": "book deleted successfully"})
 	return nil
 }
-
 // *GREAT NOTE: setiap membuat program jangan mencoba untuk berasumsi, cukup buka dokumentasi
 // dan ambil semua yang kamu butuhkan
 
